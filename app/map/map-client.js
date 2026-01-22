@@ -9,15 +9,16 @@ export default function MapClient() {
     const lat = 35.67797599475285
     const lng = 139.66690577010075
 
-    const map = L.map('map').setView([lat, lng], 13)
+    const map = L.map('map').setView([lat, lng], 10) // 広めに表示
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(map)
 
+    // 線を20kmにする
     function draw(deg) {
       const r = deg * Math.PI / 180
-      const d = 0.06
+      const d = 0.18 // 前は0.06 → 約3倍（10km→20km相当）
       return [lat + d * Math.cos(r), lng + d * Math.sin(r)]
     }
 
