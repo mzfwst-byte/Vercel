@@ -6,24 +6,35 @@ import 'leaflet/dist/leaflet.css'
 
 export default function MapClient() {
   useEffect(() => {
-    const lat = 35.67797599475285
-    const lng = 139.66690577010075
+    const lat = Number(process.env.NEXT_PUBLIC_CENTER_LAT)
+    const lng = Number(process.env.NEXT_PUBLIC_CENTER_LNG)
 
-    const map = L.map('map').setView([lat, lng], 10) // 広めに表示
+    const bearing1 = Number(process.env.NEXT_PUBLIC_BEARING_1)
+    const bearing2 = Number(process.env.NEXT_PUBLIC_BEARING_2)
+
+    const distanceKm = Number(process.env.NEXT_PUBLIC_DISTANCE_KM)
+
+    const map = L.map('map').setView([lat, lng], 10)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(map)
 
-    // 線を20kmにする
-    function draw(deg) {
+    // km → 緯度経度換算（簡易）
+    const DEG_PER_KM = 1 / 111
+    const d = distanceKm * DEG_PER_KM
+
+    function endpoint(deg) {
       const r = deg * Math.PI / 180
-      const d = 0.18 // 前は0.06 → 約3倍（10km→20km相当）
-      return [lat + d * Math.cos(r), lng + d * Math.sin(r)]
+      return [
+        lat + d * Math.cos(r),
+        lng + d * Math.sin(r)
+      ]
     }
 
-    L.polyline([[lat, lng], draw(250)], { color: 'red' }).addTo(map)
-    L.polyline([[lat, lng], draw(200)], { color: 'blue' }).addTo(map)
+    L.polyline([[lat, lng], endpoint(bearing1)], { color: 'red' }).addTo(map)
+    L.polyline([[lat, lng], endpoint(bearing2)], { color: 'blue' }).addTo(map)
+
   }, [])
 
   return <div id="map" style={{ height: '100vh', width: '100vw' }} />
