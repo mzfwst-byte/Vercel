@@ -1,4 +1,10 @@
 {
-  "name": "protected-map",
-  "private": true
+  "name": "map-app",
+  "private": true,
+  "scripts": {
+    "build": "next build"
+  },
+  "dependencies": {
+    "next": "14.1.0"
+  }
 }
