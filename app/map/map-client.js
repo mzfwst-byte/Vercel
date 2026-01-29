@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import config from '../../../map-config.json'
+import config from '../../map-config.json'
 
 export default function MapClient() {
   useEffect(() => {
