@@ -1,0 +1,11 @@
+{
+  "centers": [
+    {
+      "id": "center1",
+      "bearings": [
+        { "deg": 252, "color": "red" },
+        { "deg": 198, "color": "red" }
+      ]
+    }
+  ]
+}
