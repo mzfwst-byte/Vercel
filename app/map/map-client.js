@@ -15,6 +15,10 @@ NEXT_PUBLIC_CENTER_2_LAT=35.68
 NEXT_PUBLIC_CENTER_2_LNG=139.67
 */
 
+console.log('map-client loaded')
+console.log('env', process.env.NEXT_PUBLIC_CENTER_1_LAT)
+console.log('env', process.env.NEXT_PUBLIC_CENTER_1_LNG)
+
 function getCentersFromEnv() {
   const centers = []
 
