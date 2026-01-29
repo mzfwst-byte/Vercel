@@ -1,155 +1,59 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-
-// 方位線設定（緯度経度は含めない）
-import mapConfig from '../../map-config.json'
-
-/*
-環境変数（例）
-NEXT_PUBLIC_CENTER_1_LAT=35.67797599
-NEXT_PUBLIC_CENTER_1_LNG=139.66690577
-NEXT_PUBLIC_CENTER_2_LAT=35.68
-NEXT_PUBLIC_CENTER_2_LNG=139.67
-*/
-
-console.log('map-client loaded')
-console.log('env', process.env.NEXT_PUBLIC_CENTER_1_LAT)
-console.log('env', process.env.NEXT_PUBLIC_CENTER_1_LNG)
-
-function getCentersFromEnv() {
-  const centers = []
-
-  Object.keys(process.env).forEach((key) => {
-    if (key.startsWith('NEXT_PUBLIC_CENTER_') && key.endsWith('_LAT')) {
-      const id = key.replace('_LAT', '')
-      const lat = Number(process.env[key])
-      const lng = Number(process.env[`${id}_LNG`])
-
-      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        centers.push({ id, lat, lng })
-      }
-    }
-  })
-
-  return centers
-}
-
-function destination(lat, lng, bearingDeg, meters) {
-  const R = 6378137
-  const rad = Math.PI / 180
-
-  const lat1 = lat * rad
-  const lng1 = lng * rad
-  const brng = bearingDeg * rad
-  const d = meters / R
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d) +
-      Math.cos(lat1) * Math.sin(d) * Math.cos(brng)
-  )
-
-  const lng2 =
-    lng1 +
-    Math.atan2(
-      Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
-      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
-    )
-
-  return [lat2 / rad, lng2 / rad]
-}
+import config from '../../map-config.json'
 
 export default function MapClient() {
-  const mapRef = useRef(null)
-  const layerRef = useRef(null)
-
   useEffect(() => {
-    if (mapRef.current) return
-
-    const centers = getCentersFromEnv()
-    if (centers.length === 0) return
-
-    const map = L.map('map', {
-      zoomControl: true,
-    }).setView([centers[0].lat, centers[0].lng], 13)
-
-    mapRef.current = map
+    const map = L.map('map').setView([35.6895, 139.6917], 10)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map)
 
-    layerRef.current = L.layerGroup().addTo(map)
+    // 角度 → ラジアン
+    const toRad = deg => (deg * Math.PI) / 180
 
-    const drawBearings = () => {
-      layerRef.current.clearLayers()
+    // レスポンシブ距離（画面幅の40%）
+    const calcEndpoint = (center, bearingDeg) => {
+      const size = map.getSize()
+      const lengthPx = size.x * 0.4
 
-      const bounds = map.getBounds()
+      const start = map.latLngToContainerPoint(center)
+      const rad = toRad(bearingDeg)
 
-      centers.forEach((center, idx) => {
-        const centerLatLng = L.latLng(center.lat, center.lng)
+      const endPoint = L.point(
+        start.x + lengthPx * Math.sin(rad),
+        start.y - lengthPx * Math.cos(rad)
+      )
 
-        // 画面横幅の40%を方位線長さに（レスポンシブ）
-        const meters =
-          centerLatLng.distanceTo(
-            L.latLng(centerLatLng.lat, bounds.getEast())
-          ) * 0.4
+      return map.containerPointToLatLng(endPoint)
+    }
 
-        // 中心点マーカー
-        L.circleMarker(centerLatLng, {
-          radius: 6,
-          color: '#000',
-          fillColor: '#fff',
-          fillOpacity: 1,
-          weight: 2,
-        }).addTo(layerRef.current)
+    config.centers.forEach(centerConfig => {
+      const lat = Number(
+        process.env[`NEXT_PUBLIC_CENTER_${centerConfig.id}_LAT`]
+      )
+      const lng = Number(
+        process.env[`NEXT_PUBLIC_CENTER_${centerConfig.id}_LNG`]
+      )
 
-        // JSONで定義された方位線
-        const bearings =
-          mapConfig.centers?.[idx]?.bearings ?? []
+      if (isNaN(lat) || isNaN(lng)) return
 
-        bearings.forEach((b) => {
-          const end = destination(
-            center.lat,
-            center.lng,
-            b.angle,
-            meters
-          )
+      const center = L.latLng(lat, lng)
 
-          L.polyline(
-            [
-              [center.lat, center.lng],
-              end,
-            ],
-            {
-              color: b.color || 'red',
-              weight: 2,
-              opacity: 0.9,
-            }
-          ).addTo(layerRef.current)
-        })
+      centerConfig.bearings.forEach(b => {
+        const end = calcEndpoint(center, b.deg)
+
+        L.polyline([center, end], {
+          color: b.color,
+          weight: 3
+        }).addTo(map)
       })
-    }
-
-    drawBearings()
-
-    map.on('zoomend resize moveend', drawBearings)
-
-    return () => {
-      map.off()
-      map.remove()
-    }
+    })
   }, [])
 
-  return (
-    <div
-      id="map"
-      style={{
-        width: '100%',
-        height: '100vh',
-      }}
-    />
-  )
+  return <div id="map" style={{ height: '100vh', width: '100vw' }} />
 }
