@@ -5,7 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 // 方位線設定（緯度経度は含めない）
-import mapConfig from './map-config.json'
+import mapConfig from '../../map-config.json'
 
 /*
 環境変数（例）
