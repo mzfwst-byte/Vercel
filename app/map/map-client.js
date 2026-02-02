@@ -31,8 +31,11 @@ export default function MapClient() {
     const logs = []
 
     config.centers.forEach(center => {
-      const lat = Number(process.env[`NEXT_PUBLIC_${center.id}_LAT`])
-      const lng = Number(process.env[`NEXT_PUBLIC_${center.id}_LNG`])
+      //const lat = Number(process.env[`NEXT_PUBLIC_${center.id}_LAT`])
+      //const lng = Number(process.env[`NEXT_PUBLIC_${center.id}_LNG`])
+
+      const lat = Number(process.env.NEXT_PUBLIC_CENTER_center1_LAT)
+      const lng = Number(process.env.NEXT_PUBLIC_CENTER_center1_LNG)
 
       logs.push(`CENTER ${center.id}`)
       logs.push(`lat=${lat} lng=${lng}`)
