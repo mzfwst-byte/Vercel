@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import config from './map-config.json'
@@ -9,98 +9,100 @@ export default function MapClient() {
   const mapRef = useRef(null)
   const layerRef = useRef(null)
 
+  const [debug, setDebug] = useState([])
+
   useEffect(() => {
     if (mapRef.current) return
 
-    const initialLat = Number(process.env.NEXT_PUBLIC_CENTER_center1_LAT)
-    const initialLng = Number(process.env.NEXT_PUBLIC_CENTER_center1_LNG)
+    const map = L.map('map', {
+      center: [35.681236, 139.767125], // 仮（東京駅）
+      zoom: 10
+    })
 
-    mapRef.current = L.map('map').setView(
-      [initialLat, initialLng],
-      13
-    )
+    mapRef.current = map
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-    }).addTo(mapRef.current)
+      attribution: '© OpenStreetMap'
+    }).addTo(map)
 
-    layerRef.current = L.layerGroup().addTo(mapRef.current)
+    const layer = L.layerGroup().addTo(map)
+    layerRef.current = layer
 
-    drawAllCenters()
+    const logs = []
 
-    return () => {
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-  }, [])
+    config.centers.forEach(center => {
+      const lat = Number(process.env[`NEXT_PUBLIC_${center.id}_LAT`])
+      const lng = Number(process.env[`NEXT_PUBLIC_${center.id}_LNG`])
 
-  const drawAllCenters = () => {
-    layerRef.current.clearLayers()
+      logs.push(`CENTER ${center.id}`)
+      logs.push(`lat=${lat} lng=${lng}`)
 
-    const destination = (lat, lng, bearing, meters) => {
-      const R = 6378137
-      const rad = Math.PI / 180
-      const d = meters / R
-
-      const lat1 = lat * rad
-      const lng1 = lng * rad
-      const brng = bearing * rad
-
-      const lat2 = Math.asin(
-        Math.sin(lat1) * Math.cos(d) +
-          Math.cos(lat1) * Math.sin(d) * Math.cos(brng)
-      )
-
-      const lng2 =
-        lng1 +
-        Math.atan2(
-          Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
-          Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
-        )
-
-      return [lat2 / rad, lng2 / rad]
-    }
-
-    config.centers.forEach((centerConfig) => {
-      const lat = Number(
-        process.env[`NEXT_PUBLIC_${centerConfig.id}_LAT`]
-      )
-      const lng = Number(
-        process.env[`NEXT_PUBLIC_${centerConfig.id}_LNG`]
-      )
-
-      // ✅ 正しいチェック
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        console.warn(`Invalid center: ${centerConfig.id}`)
+        logs.push('❌ 座標取得失敗')
         return
       }
 
-      // 中心点
-      L.circleMarker([lat, lng], {
-        radius: 6,
-        color: 'black',
-        fillColor: 'yellow',
-        fillOpacity: 1,
-      }).addTo(layerRef.current)
+      L.marker([lat, lng]).addTo(layer)
 
-      // 方位線
-      centerConfig.bearings.forEach((b) => {
-        const meters = (b.lengthKm ?? 5) * 1000
-        const end = destination(lat, lng, b.angle, meters)
+      center.bearings.forEach((b, i) => {
+        const rad = (b.angle * Math.PI) / 180
+        const dx = (b.lengthKm / 111) * Math.cos(rad)
+        const dy = (b.lengthKm / 111) * Math.sin(rad)
+
+        const toLat = lat + dx
+        const toLng = lng + dy
 
         L.polyline(
           [
             [lat, lng],
-            end,
+            [toLat, toLng]
           ],
           {
             color: b.color || 'red',
-            weight: 2,
+            weight: 4
           }
-        ).addTo(layerRef.current)
+        ).addTo(layer)
+
+        logs.push(
+          `  └ bearing${i + 1}: angle=${b.angle}, km=${b.lengthKm}, color=${b.color}`
+        )
       })
     })
-  }
 
-  return <div id="map" style={{ width: '100%', height: '100vh' }} />
+    setDebug(logs)
+  }, [])
+
+  return (
+    <>
+      <div
+        id="map"
+        style={{
+          width: '100vw',
+          height: '100vh'
+        }}
+      />
+
+      {/* 🔽 情報表示パネル */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          maxHeight: '40vh',
+          overflowY: 'auto',
+          background: 'rgba(0,0,0,0.8)',
+          color: '#0f0',
+          fontSize: '12px',
+          padding: '8px',
+          zIndex: 9999,
+          fontFamily: 'monospace'
+        }}
+      >
+        {debug.map((d, i) => (
+          <div key={i}>{d}</div>
+        ))}
+      </div>
+    </>
+  )
 }
