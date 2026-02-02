@@ -12,9 +12,8 @@ export default function MapClient() {
   useEffect(() => {
     if (mapRef.current) return
 
-    // 初期表示は CENTER_1
-    const initialLat = Number(process.env.NEXT_PUBLIC_CENTER_center1_LAT)
-    const initialLng = Number(process.env.NEXT_PUBLIC_CENTER_center1_LNG)
+    const initialLat = Number(process.env.NEXT_PUBLIC_CENTER_1_LAT)
+    const initialLng = Number(process.env.NEXT_PUBLIC_CENTER_1_LNG)
 
     mapRef.current = L.map('map').setView(
       [initialLat, initialLng],
@@ -70,9 +69,13 @@ export default function MapClient() {
         process.env[`NEXT_PUBLIC_${centerConfig.id}_LNG`]
       )
 
-      if (!lat || !lng) return
+      // ✅ 正しいチェック
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        console.warn(`Invalid center: ${centerConfig.id}`)
+        return
+      }
 
-      // 中心点マーカー
+      // 中心点
       L.circleMarker([lat, lng], {
         radius: 6,
         color: 'black',
@@ -80,6 +83,7 @@ export default function MapClient() {
         fillOpacity: 1,
       }).addTo(layerRef.current)
 
+      // 方位線
       centerConfig.bearings.forEach((b) => {
         const meters = (b.lengthKm ?? 5) * 1000
         const end = destination(lat, lng, b.angle, meters)
