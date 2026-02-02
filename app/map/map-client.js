@@ -12,8 +12,8 @@ export default function MapClient() {
   useEffect(() => {
     if (mapRef.current) return
 
-    const initialLat = Number(process.env.NEXT_PUBLIC_CENTER_1_LAT)
-    const initialLng = Number(process.env.NEXT_PUBLIC_CENTER_1_LNG)
+    const initialLat = Number(process.env.NEXT_PUBLIC_CENTER_center1_LAT)
+    const initialLng = Number(process.env.NEXT_PUBLIC_CENTER_center1_LNG)
 
     mapRef.current = L.map('map').setView(
       [initialLat, initialLng],
