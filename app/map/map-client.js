@@ -35,7 +35,7 @@ export default function MapClient() {
 
   return (
     <MapContainer
-      center={[35.6779, 139.6669]}
+      center={[37.6779, 140.6669]}
       zoom={10}
       style={{ height: '100vh', width: '100%' }}
     >
