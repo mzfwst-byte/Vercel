@@ -1,10 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import config from './map-config.json'
 
-// 地球半径（km）
 const R = 6371
 
 function destination(lat, lng, bearingDeg, distanceKm) {
@@ -31,48 +31,99 @@ function destination(lat, lng, bearingDeg, distanceKm) {
 }
 
 export default function MapClient() {
-  const centersEnv = JSON.parse(process.env.NEXT_PUBLIC_CENTERS)
+  const [logs, setLogs] = useState([])
+  const log = (msg) => setLogs(l => [...l, msg])
+
+  let centersEnv = {}
+
+  try {
+    log('▶ parsing NEXT_PUBLIC_CENTERS')
+    centersEnv = JSON.parse(process.env.NEXT_PUBLIC_CENTERS || '{}')
+    log('✅ env parsed: ' + JSON.stringify(centersEnv))
+  } catch (e) {
+    log('❌ env parse error: ' + e.message)
+  }
+
+  useEffect(() => {
+    log('▶ config loaded')
+    log(JSON.stringify(config))
+  }, [])
 
   return (
-    <MapContainer
-      center={[37.6779, 140.6669]}
-      zoom={10}
-      style={{ height: '100vh', width: '100%' }}
-    >
-      <TileLayer
-        attribution="© OpenStreetMap"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <>
+      {/* ==== LOG PANEL ==== */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 9999,
+        background: 'rgba(0,0,0,0.85)',
+        color: '#0f0',
+        fontSize: '12px',
+        padding: '8px',
+        maxHeight: '40vh',
+        overflow: 'auto',
+        width: '100%'
+      }}>
+        {logs.map((l, i) => (
+          <div key={i}>{l}</div>
+        ))}
+      </div>
 
-      {config.centers.map(center => {
-        const envCenter = centersEnv[center.id]
-        if (!envCenter) return null
+      {/* ==== MAP ==== */}
+      <MapContainer
+        center={[34.6779, 140.6669]}
+        zoom={10}
+        style={{ height: '100vh', width: '100%' }}
+      >
+        <TileLayer
+          attribution="© OpenStreetMap"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-        const start = [envCenter.lat, envCenter.lng]
+        {config.centers.map(center => {
+          const envCenter = centersEnv[center.id]
 
-        return (
-          <div key={center.id}>
-            <Marker position={start} />
+          if (!envCenter) {
+            log(`❌ center not found in env: ${center.id}`)
+            return null
+          }
 
-            {center.lines.map((line, i) => {
-              const end = destination(
-                envCenter.lat,
-                envCenter.lng,
-                line.bearing,
-                line.lengthKm
-              )
+          log(`✅ center loaded: ${center.id}`)
 
-              return (
-                <Polyline
-                  key={i}
-                  positions={[start, end]}
-                  pathOptions={{ color: line.color, weight: 3 }}
-                />
-              )
-            })}
-          </div>
-        )
-      })}
-    </MapContainer>
+          const start = [envCenter.lat, envCenter.lng]
+
+          return (
+            <div key={center.id}>
+              <Marker position={start} />
+
+              {center.lines.map((line, i) => {
+                try {
+                  const end = destination(
+                    envCenter.lat,
+                    envCenter.lng,
+                    line.bearing,
+                    line.lengthKm
+                  )
+
+                  log(`→ line ${center.id} ${line.bearing}° ${line.lengthKm}km`)
+
+                  return (
+                    <Polyline
+                      key={i}
+                      positions={[start, end]}
+                      pathOptions={{ color: line.color || 'red', weight: 3 }}
+                    />
+                  )
+                } catch (e) {
+                  log(`❌ line error: ${e.message}`)
+                  return null
+                }
+              })}
+            </div>
+          )
+        })}
+      </MapContainer>
+    </>
   )
 }
