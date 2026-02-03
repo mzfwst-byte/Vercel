@@ -1,111 +1,78 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import L from 'leaflet'
+import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import config from './map-config.json'
 
+// 地球半径（km）
+const R = 6371
+
+function destination(lat, lng, bearingDeg, distanceKm) {
+  const brng = bearingDeg * Math.PI / 180
+  const d = distanceKm / R
+
+  const lat1 = lat * Math.PI / 180
+  const lng1 = lng * Math.PI / 180
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(d) +
+    Math.cos(lat1) * Math.sin(d) * Math.cos(brng)
+  )
+
+  const lng2 = lng1 + Math.atan2(
+    Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
+    Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+  )
+
+  return [
+    lat2 * 180 / Math.PI,
+    lng2 * 180 / Math.PI
+  ]
+}
+
 export default function MapClient() {
-  const mapRef = useRef(null)
-  const layerRef = useRef(null)
-
-  const [debug, setDebug] = useState([])
-
-  useEffect(() => {
-    if (mapRef.current) return
-
-    const map = L.map('map', {
-      center: [35.681236, 139.767125], // 仮（東京駅）
-      zoom: 10
-    })
-
-    mapRef.current = map
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(map)
-
-    const layer = L.layerGroup().addTo(map)
-    layerRef.current = layer
-
-    const logs = []
-
-    config.centers.forEach(center => {
-      //const lat = Number(process.env[`NEXT_PUBLIC_${center.id}_LAT`])
-      //const lng = Number(process.env[`NEXT_PUBLIC_${center.id}_LNG`])
-
-      const lat = Number(process.env.NEXT_PUBLIC_CENTER_center1_LAT)
-      const lng = Number(process.env.NEXT_PUBLIC_CENTER_center1_LNG)
-
-      logs.push(`CENTER ${center.id}`)
-      logs.push(`lat=${lat} lng=${lng}`)
-
-      if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        logs.push('❌ 座標取得失敗')
-        return
-      }
-
-      L.marker([lat, lng]).addTo(layer)
-
-      center.bearings.forEach((b, i) => {
-        const rad = (b.angle * Math.PI) / 180
-        const dx = (b.lengthKm / 111) * Math.cos(rad)
-        const dy = (b.lengthKm / 111) * Math.sin(rad)
-
-        const toLat = lat + dx
-        const toLng = lng + dy
-
-        L.polyline(
-          [
-            [lat, lng],
-            [toLat, toLng]
-          ],
-          {
-            color: b.color || 'red',
-            weight: 4
-          }
-        ).addTo(layer)
-
-        logs.push(
-          `  └ bearing${i + 1}: angle=${b.angle}, km=${b.lengthKm}, color=${b.color}`
-        )
-      })
-    })
-
-    setDebug(logs)
-  }, [])
+  const centersEnv = JSON.parse(process.env.NEXT_PUBLIC_CENTERS)
 
   return (
-    <>
-      <div
-        id="map"
-        style={{
-          width: '100vw',
-          height: '100vh'
-        }}
+    <MapContainer
+      center={[35.6779, 139.6669]}
+      zoom={10}
+      style={{ height: '100vh', width: '100%' }}
+    >
+      <TileLayer
+        attribution="© OpenStreetMap"
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* 🔽 情報表示パネル */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: '40vh',
-          overflowY: 'auto',
-          background: 'rgba(0,0,0,0.8)',
-          color: '#0f0',
-          fontSize: '12px',
-          padding: '8px',
-          zIndex: 9999,
-          fontFamily: 'monospace'
-        }}
-      >
-        {debug.map((d, i) => (
-          <div key={i}>{d}</div>
-        ))}
-      </div>
-    </>
+      {config.centers.map(center => {
+        const envCenter = centersEnv[center.id]
+        if (!envCenter) return null
+
+        const start = [envCenter.lat, envCenter.lng]
+
+        return (
+          <div key={center.id}>
+            <Marker position={start} />
+
+            {center.lines.map((line, i) => {
+              const end = destination(
+                envCenter.lat,
+                envCenter.lng,
+                line.bearing,
+                line.lengthKm
+              )
+
+              return (
+                <Polyline
+                  key={i}
+                  positions={[start, end]}
+                  pathOptions={{ color: line.color, weight: 3 }}
+                />
+              )
+            })}
+          </div>
+        )
+      })}
+    </MapContainer>
   )
 }
