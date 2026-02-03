@@ -1,10 +1,10 @@
 {
   "centers": [
     {
-      "id": "CENTER_center1",
-      "bearings": [
-        { "angle": 252, "color": "red" , "lengthKm": 20},
-        { "angle": 198, "color": "red" , "lengthKm": 20}
+      "id": "Mizutani",
+      "lines": [
+        { "bearing": 252, "color": "red" , "lengthKm": 20},
+        { "bearing": 198, "color": "red" , "lengthKm": 20}
       ]
     }
   ]
