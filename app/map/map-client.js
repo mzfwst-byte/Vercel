@@ -11,7 +11,9 @@ export default function MapClient() {
 
     const bearing1 = Number(process.env.NEXT_PUBLIC_BEARING_1)
     const bearing2 = Number(process.env.NEXT_PUBLIC_BEARING_2)
-
+    const bearing3 = Number(process.env.NEXT_PUBLIC_BEARING_3)
+    const bearing4 = Number(process.env.NEXT_PUBLIC_BEARING_4)
+    
     const distanceKm = Number(process.env.NEXT_PUBLIC_DISTANCE_KM)
 
     const map = L.map('map').setView([lat, lng], 10)
@@ -33,9 +35,12 @@ export default function MapClient() {
     }
 
     L.polyline([[lat, lng], endpoint(bearing1)], { color: 'red' }).addTo(map)
-    L.polyline([[lat, lng], endpoint(bearing2)], { color: 'blue' }).addTo(map)
+    L.polyline([[lat, lng], endpoint(bearing2)], { color: 'red' }).addTo(map)
 
+    L.polyline([[lat, lng], endpoint(bearing3)], { color: 'blue' }).addTo(map)
+    L.polyline([[lat, lng], endpoint(bearing4)], { color: 'blue' }).addTo(map)
+    
   }, [])
 
   return <div id="map" style={{ height: '100vh', width: '100vw' }} />
-}
+}}
