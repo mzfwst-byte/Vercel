@@ -37,8 +37,8 @@ export default function MapClient() {
     L.polyline([[lat, lng], endpoint(bearing1)], { color: 'red' }).addTo(map)
     L.polyline([[lat, lng], endpoint(bearing2)], { color: 'red' }).addTo(map)
 
-    L.polyline([[lat, lng], endpoint(bearing3)], { color: 'blue' }).addTo(map)
-    L.polyline([[lat, lng], endpoint(bearing4)], { color: 'blue' }).addTo(map)
+    //L.polyline([[lat, lng], endpoint(bearing3)], { color: 'blue' }).addTo(map)
+    //L.polyline([[lat, lng], endpoint(bearing4)], { color: 'blue' }).addTo(map)
     
   }, [])
 
