@@ -43,4 +43,4 @@ export default function MapClient() {
   }, [])
 
   return <div id="map" style={{ height: '100vh', width: '100vw' }} />
-}}
+}
